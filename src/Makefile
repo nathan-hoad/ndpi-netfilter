@@ -1,14 +1,20 @@
 NDPI_PATH2 := ${NDPI_PATH}/src
 NDPI_SRC := ndpi_cpy
 NDPI_PRO := ${NDPI_SRC}/lib/protocols
+NDPI_THIRD_PARTY := ${NDPI_SRC}/lib/third_party
+NDPI_THIRD_PARTY_SRC := ${NDPI_THIRD_PARTY}/src
 
-ccflags-y += -I${src}/${NDPI_SRC}/include -I${src}/${NDPI_SRC}/lib -DOPENDPI_NETFILTER_MODULE
+ccflags-y += -I${src}/${NDPI_SRC}/include -I${src}/${NDPI_SRC}/lib -DOPENDPI_NETFILTER_MODULE -I${src}/${NDPI_THIRD_PARTY}/include
 
 MODULES_DIR := /lib/modules/$(shell uname -r)
 KERNEL_DIR := ${MODULES_DIR}/build
 
 obj-m := xt_ndpi.o
-xt_ndpi-y := main.o ${NDPI_SRC}/lib/ndpi_main.o \
+xt_ndpi-y := main.o \
+                ${NDPI_SRC}/lib/ndpi_main.o \
+                ${NDPI_THIRD_PARTY_SRC}/ahocorasick.o \
+                ${NDPI_THIRD_PARTY_SRC}/node.o \
+                ${NDPI_THIRD_PARTY_SRC}/sort.o \
                 ${NDPI_PRO}/afp.o \
                 ${NDPI_PRO}/aimini.o \
                 ${NDPI_PRO}/applejuice.o \
