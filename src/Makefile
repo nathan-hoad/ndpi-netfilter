@@ -4,8 +4,8 @@ NDPI_PRO := ${NDPI_SRC}/lib/protocols
 
 ccflags-y += -I${src}/${NDPI_SRC}/include -I${src}/${NDPI_SRC}/lib -DOPENDPI_NETFILTER_MODULE
 
-#MODULES_DIR := /lib/modules/$(shell uname -r)
-#KERNEL_DIR := ${MODULES_DIR}/build
+MODULES_DIR := /lib/modules/$(shell uname -r)
+KERNEL_DIR := ${MODULES_DIR}/build
 
 obj-m := xt_ndpi.o
 xt_ndpi-y := main.o ${NDPI_SRC}/lib/ndpi_main.o \
