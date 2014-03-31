@@ -111,6 +111,16 @@ static void debug_printf(u32 protocol, void *id_struct,
 }
 
 
+static void trace_NDPI_PROTOCOL_BITMASK(NDPI_PROTOCOL_BITMASK a) {
+  int i;
+
+  for(i=0; i<NDPI_NUM_FDS_BITS; i++)
+    trace("[%d=0x%08x]", i, a.fds_bits[i]);
+
+  trace("\n");
+}
+
+
 static void *malloc_wrapper(unsigned long size)
 {
 	return kmalloc(size, GFP_KERNEL);
@@ -326,6 +336,7 @@ ndpi_enable_protocols (const struct xt_ndpi_mtinfo*info)
                         spin_unlock_bh (&ipq_lock);
                 }
         }
+        trace_NDPI_PROTOCOL_BITMASK(info->flags);
 }
 
 
@@ -345,6 +356,7 @@ ndpi_disable_protocols (const struct xt_ndpi_mtinfo*info)
                         spin_unlock_bh (&ipq_lock);
                 }
         }
+        trace_NDPI_PROTOCOL_BITMASK(info->flags);
 }
 
 
