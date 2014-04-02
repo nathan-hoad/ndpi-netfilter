@@ -49,6 +49,8 @@ MODULE_ALIAS("ipt_ndpi");
 struct osdpi_flow_node {
         struct rb_node node;
         struct nf_conn * ct;
+        /* mark if done detecting flow proto - no more tries */
+        u8 detection_completed;
 	/* result only, not used for flow identification */
 	u32 detected_protocol;
         /* last pointer assigned at run time */
@@ -436,6 +438,9 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
                 if (flow == NULL)
                         return proto;
         }
+        if (flow->detection_completed) {
+                return flow->detected_protocol;
+        }
 
         ipsrc = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.u3;
 
@@ -465,6 +470,9 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
                                                 (uint8_t *) iph, ipsize, time,
                                                 src->ndpi_id, dst->ndpi_id);
         flow->detected_protocol = proto;
+        if (flow->detected_protocol != NDPI_PROTOCOL_UNKNOWN) {
+                flow->detection_completed = 1;
+        }
         spin_unlock_bh (&ipq_lock);
 
 	return proto;
