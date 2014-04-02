@@ -76,4 +76,20 @@ struct xt_ndpi_mtinfo {
 	"cnn","dropbox","skype","viber","yahoo","pandomediabooster"
 #endif
 
+
+/*
+ * from ndpi_macros.h
+ * FIXME: Macro was updated to reflect new BITMASK size - need to check this though
+ */
+#define NDPI_BITMASK_IS_ZERO(a) ( \
+		(a).fds_bits[0] == 0 && \
+		(a).fds_bits[1] == 0 && \
+		(a).fds_bits[2] == 0 && \
+		(a).fds_bits[3] == 0 && \
+		(a).fds_bits[4] == 0 && \
+		(a).fds_bits[5] == 0 && \
+		(a).fds_bits[6] == 0 && \
+		(a).fds_bits[7] == 0 \
+		)
+
 #endif /* _LINUX_NETFILTER_XT_NDPI_H */
