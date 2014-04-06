@@ -33,6 +33,7 @@
 #include <linux/rbtree.h>
 #include <linux/kref.h>
 #include <linux/time.h>
+#include <linux/in.h>
 
 #include <net/netfilter/nf_conntrack.h>
 #include <net/netfilter/nf_conntrack_ecache.h>
@@ -41,7 +42,8 @@
 #include "xt_ndpi.h"
 
 #define TRACE() pr_err("xt_ndpi (info): %s.\n", __FUNCTION__);
-#define trace	pr_err
+//#define trace	pr_err
+#define trace(...)	do {} while (0)
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("G. Elian Gidoni <geg@gnu.org>");
@@ -452,6 +454,7 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
         }
         flow->packets++;
         if (flow->detection_completed) {
+                trace("%s[%p]: stop detection detected_protocol: [%3d]\n", __FUNCTION__, flow, flow->detected_protocol);
                 return flow->detected_protocol;
         }
 
@@ -483,10 +486,21 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
                                                 (uint8_t *) iph, ipsize, time,
                                                 src->ndpi_id, dst->ndpi_id);
         flow->detected_protocol = proto;
-        if (flow->detected_protocol != NDPI_PROTOCOL_UNKNOWN) {
+        if((flow->detected_protocol != NDPI_PROTOCOL_UNKNOWN)
+           || ((iph->protocol == IPPROTO_UDP) && (flow->packets > 8))
+           || ((iph->protocol == IPPROTO_TCP) && (flow->packets > 10))) {
                 flow->detection_completed = 1;
+                trace("%s[%p]: detection_completed -> detected_protocol: [%3d]\n"
+                      "    protocol_id_already_guessed[%d]\n"
+                      "    guessed_protocol_id[%3d]\n"
+                      "    host_server_name[%s]\n",
+                      __FUNCTION__, flow, proto,
+                      flow->ndpi_flow->protocol_id_already_guessed,
+                      flow->ndpi_flow->guessed_protocol_id,
+                      flow->ndpi_flow->host_server_name);
         }
         spin_unlock_bh (&ipq_lock);
+
 
 	return proto;
 }
