@@ -52,11 +52,14 @@ MODULE_ALIAS("ipt_ndpi");
 struct osdpi_flow_node {
         struct rb_node node;
         struct nf_conn * ct;
-        /* mark if done detecting flow proto - no more tries */
-        u8 detection_completed;
 	/* result only, not used for flow identification */
 	u32 detected_protocol;
-        /* last pointer assigned at run time */
+
+	u_int16_t packets;
+	/* mark if done detecting flow proto - no more tries */
+	u8 detection_completed;
+
+	/* last pointer assigned at run time */
 	struct ndpi_flow_struct *ndpi_flow;
 };
 
@@ -447,6 +450,7 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
                 if (flow == NULL)
                         return proto;
         }
+        flow->packets++;
         if (flow->detection_completed) {
                 return flow->detected_protocol;
         }
