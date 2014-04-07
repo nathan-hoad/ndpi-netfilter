@@ -42,8 +42,8 @@
 #include "xt_ndpi.h"
 
 #define TRACE() pr_err("xt_ndpi (info): %s.\n", __FUNCTION__);
-//#define trace	pr_err
-#define trace(...)	do {} while (0)
+#define trace	pr_err
+//#define trace(...)	do {} while (0)
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("G. Elian Gidoni <geg@gnu.org>");
@@ -139,18 +139,21 @@ static void trace_NDPI_PROTOCOL_BITMASK(NDPI_PROTOCOL_BITMASK a)
 
 static void *malloc_wrapper(unsigned long size)
 {
+//	TRACE();
 	return kmalloc(size, GFP_KERNEL);
 }
 
 
 static void free_wrapper(void *freeable)
 {
+//	TRACE();
 	kfree(freeable);
 }
 
 static struct osdpi_flow_node *
 ndpi_flow_search(struct rb_root *root, struct nf_conn *ct)
 {
+//	TRACE();
         struct osdpi_flow_node *data;
   	struct rb_node *node = root->rb_node;
 
@@ -196,6 +199,7 @@ ndpi_flow_insert(struct rb_root *root, struct osdpi_flow_node *data)
 static struct osdpi_id_node *
 ndpi_id_search(struct rb_root *root, union nf_inet_addr *ip)
 {
+//	TRACE();
         int res;
         struct osdpi_id_node *data;
   	struct rb_node *node = root->rb_node;
@@ -219,6 +223,7 @@ ndpi_id_search(struct rb_root *root, union nf_inet_addr *ip)
 static int
 ndpi_id_insert(struct rb_root *root, struct osdpi_id_node *data)
 {
+//	TRACE();
         int res;
         struct osdpi_id_node *this;
   	struct rb_node **new = &(root->rb_node), *parent = NULL;
@@ -246,6 +251,7 @@ static void
 ndpi_id_release(struct kref *kref)
 {
         struct osdpi_id_node * id;
+//	TRACE();
 
         id = container_of (kref, struct osdpi_id_node, refcnt);
         rb_erase(&id->node, &osdpi_id_root);
@@ -256,6 +262,7 @@ ndpi_id_release(struct kref *kref)
 static struct osdpi_flow_node *
 ndpi_alloc_flow (struct nf_conn * ct)
 {
+//	TRACE();
         struct osdpi_flow_node *flow;
 
         spin_lock_bh (&flow_lock);
@@ -284,6 +291,7 @@ static void
 ndpi_free_flow (struct nf_conn * ct)
 {
         struct osdpi_flow_node * flow;
+//	TRACE();
 
         spin_lock_bh (&flow_lock);
         flow = ndpi_flow_search (&osdpi_flow_root, ct);
@@ -298,6 +306,7 @@ ndpi_free_flow (struct nf_conn * ct)
 static struct osdpi_id_node *
 ndpi_alloc_id (union nf_inet_addr * ip)
 {
+//	TRACE();
         struct osdpi_id_node *id;
 
         spin_lock_bh (&id_lock);
@@ -328,6 +337,7 @@ static void
 ndpi_free_id (union nf_inet_addr * ip)
 {
         struct osdpi_id_node *id;
+//	TRACE();
 
         spin_lock_bh (&id_lock);
         id = ndpi_id_search (&osdpi_id_root, ip);
@@ -338,9 +348,10 @@ ndpi_free_id (union nf_inet_addr * ip)
 
 
 static void
-ndpi_enable_protocols (const struct xt_ndpi_mtinfo*info)
+ndpi_enable_protocols (const struct xt_ndpi_mtinfo* info)
 {
         int i;
+	TRACE();
 
         for (i = 1; i <= NDPI_LAST_IMPLEMENTED_PROTOCOL; i++){
                 if (NDPI_COMPARE_PROTOCOL_TO_BITMASK(info->flags, i) != 0){
@@ -357,9 +368,10 @@ ndpi_enable_protocols (const struct xt_ndpi_mtinfo*info)
 
 
 static void
-ndpi_disable_protocols (const struct xt_ndpi_mtinfo*info)
+ndpi_disable_protocols (const struct xt_ndpi_mtinfo* info)
 {
         int i;
+	TRACE();
 
         for (i = 1; i <= NDPI_LAST_IMPLEMENTED_PROTOCOL; i++){
                 if (NDPI_COMPARE_PROTOCOL_TO_BITMASK(info->flags, i) != 0){
@@ -408,6 +420,7 @@ osdpi_notifier = {
 static int
 ndpi_conntrack_event(unsigned int events, struct nf_ct_event *item)
 {
+//	TRACE();
         struct nf_conn * ct = item->ct;
         union nf_inet_addr *src, *dst;
 
@@ -439,6 +452,7 @@ static u32
 ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
                        const struct iphdr *iph, uint16_t ipsize)
 {
+//	TRACE();
 	u32 proto = NDPI_PROTOCOL_UNKNOWN;
         union nf_inet_addr *ipsrc, *ipdst;
         struct osdpi_id_node *src, *dst;
@@ -526,6 +540,7 @@ static bool
 ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
 #endif
 {
+//	TRACE();
 	u32 proto;
 	u64 time;
 
@@ -544,7 +559,7 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	if (skb_is_nonlinear(skb)){
 		linearized_skb = skb_copy(skb, GFP_ATOMIC);
 		if (linearized_skb == NULL) {
-			pr_info ("xt_ndpi: linearization failed.\n");
+			pr_err ("xt_ndpi: linearization failed.\n");
 			return false;
 		}
 		skb_use = linearized_skb;
@@ -565,7 +580,7 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
 #else
 	} else if (nf_ct_is_untracked(ct)){
 #endif
-		pr_info ("xt_ndpi: ignoring untracked sk_buff.\n");
+		pr_err ("xt_ndpi: ignoring untracked sk_buff.\n");
 		return false;               
 	}
 	do_gettimeofday(&tv);
@@ -581,9 +596,12 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	}
 
 
-	if (NDPI_COMPARE_PROTOCOL_TO_BITMASK(info->flags,proto) != 0)
+	if (NDPI_COMPARE_PROTOCOL_TO_BITMASK(info->flags,proto) != 0) {
+		trace("> %s: exit with TRUE. proto [%3d]\n", __FUNCTION__, proto);
 		return true;
+	}
 
+	trace("> %s: exit with FALSE. proto [%3d]\n", __FUNCTION__, proto);
 	return false;
 }
 
@@ -600,7 +618,7 @@ ndpi_mt_check(const char *tablename,
 	const struct xt_ndpi_mtinfo *info = matchinfo;
 
 	if (NDPI_BITMASK_IS_ZERO(info->flags)){
-		pr_info("None selected protocol.\n");
+		pr_err("None selected protocol.\n");
 		return false;
 	}
 
@@ -616,7 +634,7 @@ ndpi_mt_check(const struct xt_mtchk_param *par)
 	const struct xt_ndpi_mtinfo *info = par->matchinfo;
 
 	if (NDPI_BITMASK_IS_ZERO(info->flags)){
-		pr_info("None selected protocol.\n");
+		pr_err("None selected protocol.\n");
 		return false;
 	}
 
@@ -628,10 +646,11 @@ ndpi_mt_check(const struct xt_mtchk_param *par)
 static int
 ndpi_mt_check(const struct xt_mtchk_param *par)
 {
+//	TRACE();
 	const struct xt_ndpi_mtinfo *info = par->matchinfo;
 
 	if (NDPI_BITMASK_IS_ZERO(info->flags)){
-		pr_info("None selected protocol.\n");
+		pr_err("None selected protocol.\n");
 		return -EINVAL;
 	}
 
@@ -657,6 +676,7 @@ static void
 ndpi_mt_destroy (const struct xt_mtdtor_param *par)
 {
 	const struct xt_ndpi_mtinfo *info = par->matchinfo;
+//	TRACE();
 
         ndpi_disable_protocols (info);
 	nf_ct_l3proto_module_put (par->family);
@@ -671,6 +691,8 @@ static void ndpi_cleanup(void)
         struct rb_node * next;
         struct osdpi_id_node *id;
         struct osdpi_flow_node *flow;
+
+        TRACE();
 
         ndpi_exit_detection_module(ndpi_struct, free_wrapper);
 
@@ -721,8 +743,9 @@ ndpi_mt_reg __read_mostly = {
 static int __init ndpi_mt_init(void)
 {
         int ret, i;
+	TRACE();
 
-	pr_info("xt_ndpi 0.1 (nDPI wrapper module).\n");
+	pr_err("xt_ndpi 0.1 (nDPI wrapper module).\n");
 	/* init global detection structure */
 	ndpi_struct = ndpi_init_detection_module(detection_tick_resolution,
 						malloc_wrapper,
@@ -769,10 +792,10 @@ static int __init ndpi_mt_init(void)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,2,0)        
         ret = nf_conntrack_register_notifier(&osdpi_notifier);
 #else
-	ret = nf_conntrack_register_notifier(&init_net,&osdpi_notifier);
+	ret = nf_conntrack_register_notifier(&init_net, &osdpi_notifier);
 #endif
         if (ret < 0){
-                pr_err("xt_ndpi: error registering notifier.\n");
+                pr_err("xt_ndpi: error registering notifier: ret = %d.\n", ret);
                 goto err_id;
         }
 
@@ -797,7 +820,8 @@ err_out:
 
 static void __exit ndpi_mt_exit(void)
 {
-	pr_info("xt_ndpi 1.2 unload.\n");
+	TRACE();
+	pr_err("xt_ndpi 1.2 unload.\n");
 
 	xt_unregister_match(&ndpi_mt_reg);
 

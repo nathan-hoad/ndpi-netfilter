@@ -73,8 +73,8 @@ ndpi_mt4_parse(int c, char **argv, int invert, unsigned int *flags,
         for (i = 1; i <= NDPI_LAST_IMPLEMENTED_PROTOCOL; i++){
                 if (c == i){
                         NDPI_ADD_PROTOCOL_TO_BITMASK(info->flags, i);
-                        /*printf("Parameter detected as protocol %s.\n",
-                          prot_long_str[i]);*/
+                        printf("Parameter detected as protocol %s.\n",
+                        		prot_long_str[i]);
                         *flags = 1;
                         return true;
                 }
