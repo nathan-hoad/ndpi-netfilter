@@ -125,13 +125,22 @@ static void debug_printf(u32 protocol, void *id_struct,
 static void trace_NDPI_PROTOCOL_BITMASK(NDPI_PROTOCOL_BITMASK a)
 {
 	int i;
-	char buf[200] = "";
+	int off;
+	char buf[512] = "[";
 
-	for (i = 0; i < NDPI_NUM_FDS_BITS; i++) {
-		int off = strlen(buf);
-		sprintf(buf + off, "[%d=0x%08x]", i, a.fds_bits[i]);
+	for (i = 0; i < ndpi_struct->ndpi_num_supported_protocols; i++) {
+		if (NDPI_COMPARE_PROTOCOL_TO_BITMASK(a, i)) {
+			off = strlen(buf);
+			snprintf(buf+off, sizeof(buf), "%s,", ndpi_get_proto_by_id(ndpi_struct, i));
+		}
 	}
 
+	off = strlen(buf);
+	if (off == 1) {
+		strcpy(buf, "[x]");
+	} else {
+		strcpy(buf+off-1, "]");
+	}
 	pr_err("%s\n", buf);
 }
 
@@ -497,6 +506,12 @@ _ndpi_trace_packet_info(struct nf_conn * ct, const struct iphdr *iph)
 			ct, protocol, src_name, src_port, dest_name, dest_port);
 }
 
+//static void
+//_ndpi_trace_ndpi_packet()
+//{
+//
+//}
+
 static u32
 ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
                        const struct iphdr *iph, uint16_t ipsize)
@@ -510,6 +525,7 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
         spin_lock_bh (&flow_lock);
         flow = ndpi_flow_search (&osdpi_flow_root, ct);
         spin_unlock_bh (&flow_lock);
+
         if (flow == NULL){
                 flow = ndpi_alloc_flow(ct);
                 if (flow == NULL)
@@ -549,6 +565,16 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
         proto = ndpi_detection_process_packet(ndpi_struct, flow->ndpi_flow,
                                                 (uint8_t *) iph, ipsize, time,
                                                 src->ndpi_id, dst->ndpi_id);
+        {
+        	int i;
+        	char buf[500] = "";
+        	trace("%s: inside the insidious block\n", __FUNCTION__);
+        	for (i=0; i< flow->ndpi_flow->packet.payload_packet_len; i++) {
+        		int off = strlen(buf);
+        		snprintf(buf + off, 499 - off, "%.2X", flow->ndpi_flow->packet.payload[i]);
+        	}
+        	trace("payload: %s\n", buf);
+        }
 //        trace("PACKET[%p]: proto[%d], protocol_id_already_guessed[%d], guessed_protocol_id[%d], host[%s]\n",
 //        		flow, proto, flow->ndpi_flow->protocol_id_already_guessed,
 //        		flow->ndpi_flow->guessed_protocol_id,
@@ -671,7 +697,7 @@ ndpi_mt_check(const char *tablename,
 {
 	const struct xt_ndpi_mtinfo *info = matchinfo;
 
-	if (NDPI_BITMASK_IS_ZERO(info->flags)){
+	if (NDPI_BITMASK_IS_EMPTY(info->flags)){
 		pr_err("None selected protocol.\n");
 		return false;
 	}
@@ -687,7 +713,7 @@ ndpi_mt_check(const struct xt_mtchk_param *par)
 {
 	const struct xt_ndpi_mtinfo *info = par->matchinfo;
 
-	if (NDPI_BITMASK_IS_ZERO(info->flags)){
+	if (NDPI_BITMASK_IS_EMPTY(info->flags)){
 		pr_err("None selected protocol.\n");
 		return false;
 	}
@@ -703,7 +729,7 @@ ndpi_mt_check(const struct xt_mtchk_param *par)
 //	TRACE();
 	const struct xt_ndpi_mtinfo *info = par->matchinfo;
 
-	if (NDPI_BITMASK_IS_ZERO(info->flags)){
+	if (NDPI_BITMASK_IS_EMPTY(info->flags)){
 		pr_err("None selected protocol.\n");
 		return -EINVAL;
 	}
