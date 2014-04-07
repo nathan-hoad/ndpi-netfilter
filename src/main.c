@@ -61,6 +61,7 @@ struct osdpi_flow_node {
 	/* mark if done detecting flow proto - no more tries */
 	u8 detection_completed;
 
+	struct ndpi_id_struct ndpi_id_src, ndpi_id_dst;
 	/* last pointer assigned at run time */
 	struct ndpi_flow_struct *ndpi_flow;
 };
@@ -123,7 +124,6 @@ static void debug_printf(u32 protocol, void *id_struct,
 
 static void trace_NDPI_PROTOCOL_BITMASK(NDPI_PROTOCOL_BITMASK a)
 {
-#ifdef trace
 	int i;
 	char buf[200] = "";
 
@@ -132,8 +132,7 @@ static void trace_NDPI_PROTOCOL_BITMASK(NDPI_PROTOCOL_BITMASK a)
 		sprintf(buf + off, "[%d=0x%08x]", i, a.fds_bits[i]);
 	}
 
-	trace("%s\n", buf);
-#endif // trace
+	pr_err("%s\n", buf);
 }
 
 
@@ -178,7 +177,10 @@ ndpi_flow_insert(struct rb_root *root, struct osdpi_flow_node *data)
         struct osdpi_flow_node *this;
   	struct rb_node **new = &(root->rb_node), *parent = NULL;
 
-  	while (*new) {
+//	TRACE();
+	trace("%s: nf_conn = [%p]\n", __FUNCTION__, data->ct);
+
+	while (*new) {
                 this = rb_entry(*new, struct osdpi_flow_node, node);
 
 		parent = *new;
@@ -363,6 +365,7 @@ ndpi_enable_protocols (const struct xt_ndpi_mtinfo* info)
                         spin_unlock_bh (&ipq_lock);
                 }
         }
+//        trace_NDPI_PROTOCOL_BITMASK(info->flags);
         trace_NDPI_PROTOCOL_BITMASK(protocols_bitmask);
 }
 
@@ -384,6 +387,7 @@ ndpi_disable_protocols (const struct xt_ndpi_mtinfo* info)
                         spin_unlock_bh (&ipq_lock);
                 }
         }
+//        trace_NDPI_PROTOCOL_BITMASK(info->flags);
         trace_NDPI_PROTOCOL_BITMASK(protocols_bitmask);
 }
 
@@ -447,6 +451,51 @@ osdpi_notifier = {
 #endif
 
 
+static bool
+_ndpi_parse_iphdr(const struct iphdr *iph, u8 *protocol, u32 *src_ip, u16 *src_port, u32 *dest_ip, u16 *dest_port)
+{
+	if (!iph) {
+		return false;
+	}
+	if (protocol) {
+		*protocol = iph->protocol;
+	}
+	*src_ip = iph->saddr;
+	*dest_ip = iph->daddr;
+	if (iph->protocol == IPPROTO_TCP) {
+		struct tcphdr *tcp_hdr;
+		tcp_hdr = (struct tcphdr *)((__u32 *)iph + iph->ihl);
+		*src_port = htons(tcp_hdr->source);
+		*dest_port = htons(tcp_hdr->dest);
+		return true;
+	}
+	if (iph->protocol == IPPROTO_UDP) {
+		struct udphdr *udp_hdr;
+		udp_hdr = (struct udphdr *)((__u32 *)iph + iph->ihl);
+		*src_port = htons(udp_hdr->source);
+		*dest_port = htons(udp_hdr->dest);
+		return true;
+	}
+	return false;
+}
+
+static void
+_ndpi_trace_packet_info(struct nf_conn * ct, const struct iphdr *iph)
+{
+	u8 protocol;
+	u32 src_ip, dest_ip;
+	u16 src_port, dest_port;
+	char src_name[32], dest_name[32];
+	if (!_ndpi_parse_iphdr(iph, &protocol, &src_ip, &src_port, &dest_ip, &dest_port)) {
+		trace("PI: ct[%p]: Unable to parse the packet! Not a TCP/UDP one?",
+				ct);
+		return;
+	}
+	snprintf(src_name, 32, "%pI4", &src_ip);
+	snprintf(dest_name, 32, "%pI4", &dest_ip);
+	trace("PI: ct[%p]: proto[%d], SRC[%s:%u] <-> DST:[%s:%u]",
+			ct, protocol, src_name, src_port, dest_name, dest_port);
+}
 
 static u32
 ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
@@ -467,6 +516,7 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
                         return proto;
         }
         flow->packets++;
+//        _ndpi_trace_packet_info(ct, iph);
         if (flow->detection_completed) {
                 trace("%s[%p]: stop detection detected_protocol: [%3d]\n", __FUNCTION__, flow, flow->detected_protocol);
                 return flow->detected_protocol;
@@ -496,9 +546,13 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
 
         /* here the actual detection is performed */
         spin_lock_bh (&ipq_lock);
-        proto = ndpi_detection_process_packet(ndpi_struct,flow->ndpi_flow,
+        proto = ndpi_detection_process_packet(ndpi_struct, flow->ndpi_flow,
                                                 (uint8_t *) iph, ipsize, time,
                                                 src->ndpi_id, dst->ndpi_id);
+//        trace("PACKET[%p]: proto[%d], protocol_id_already_guessed[%d], guessed_protocol_id[%d], host[%s]\n",
+//        		flow, proto, flow->ndpi_flow->protocol_id_already_guessed,
+//        		flow->ndpi_flow->guessed_protocol_id,
+//        		flow->ndpi_flow->host_server_name);
         flow->detected_protocol = proto;
         if((flow->detected_protocol != NDPI_PROTOCOL_UNKNOWN)
            || ((iph->protocol == IPPROTO_UDP) && (flow->packets > 8))
@@ -601,7 +655,7 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
 		return true;
 	}
 
-	trace("> %s: exit with FALSE. proto [%3d]\n", __FUNCTION__, proto);
+//	trace("> %s: exit with FALSE. proto [%3d]\n", __FUNCTION__, proto);
 	return false;
 }
 
