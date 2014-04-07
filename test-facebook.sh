@@ -9,6 +9,12 @@ if [ "x$1" == "xclean" ]; then
 	exit
 fi
 
+if [ "x$1" == "xhttp-probe" ]; then
+	sudo iptables -I OUTPUT $opts --http -j REJECT
+	sudo iptables -D OUTPUT $opts --http -j REJECT
+	exit
+fi
+
 sudo iptables -I OUTPUT $opts --facebook -j REJECT
 if [ "x$1" == "xhttp" ]; then
 	sudo iptables -I OUTPUT $opts --http -j REJECT
