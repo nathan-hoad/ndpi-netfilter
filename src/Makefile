@@ -142,14 +142,14 @@ xt_ndpi-y := main.o \
                 ${NDPI_PRO}/zattoo.o
 
 all:
-	if test -d ${NDPI_SRC}; then \
-		cp ${NDPI_PATH2}/* ${NDPI_SRC} -R; \
-	else \
-		mkdir ${NDPI_SRC}; \
-		cp ${NDPI_PATH2}/* ${NDPI_SRC} -R; \
-	fi
+#	if test -d ${NDPI_SRC}; then \
+#		cp ${NDPI_PATH2}/* ${NDPI_SRC} -R; \
+#	else \
+#		mkdir ${NDPI_SRC}; \
+#		cp ${NDPI_PATH2}/* ${NDPI_SRC} -R; \
+#	fi
 	make -C ${KERNEL_DIR} M=$$PWD;
-	rm -r ${NDPI_SRC}
+#	rm -r ${NDPI_SRC}
 modules:
 	make -C ${KERNEL_DIR} M=$$PWD $@;
 modules_install:
