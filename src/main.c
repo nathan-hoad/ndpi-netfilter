@@ -40,6 +40,9 @@
 #include "ndpi_main.h"
 #include "xt_ndpi.h"
 
+#define TRACE() pr_err("xt_ndpi (info): %s.\n", __FUNCTION__);
+#define trace	pr_err
+
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("G. Elian Gidoni <geg@gnu.org>");
 MODULE_DESCRIPTION("nDPI wrapper");
@@ -113,13 +116,19 @@ static void debug_printf(u32 protocol, void *id_struct,
 }
 
 
-static void trace_NDPI_PROTOCOL_BITMASK(NDPI_PROTOCOL_BITMASK a) {
-  int i;
+static void trace_NDPI_PROTOCOL_BITMASK(NDPI_PROTOCOL_BITMASK a)
+{
+#ifdef trace
+	int i;
+	char buf[200] = "";
 
-  for(i=0; i<NDPI_NUM_FDS_BITS; i++)
-    trace("[%d=0x%08x]", i, a.fds_bits[i]);
+	for (i = 0; i < NDPI_NUM_FDS_BITS; i++) {
+		int off = strlen(buf);
+		sprintf(buf + off, "[%d=0x%08x]", i, a.fds_bits[i]);
+	}
 
-  trace("\n");
+	trace("%s\n", buf);
+#endif // trace
 }
 
 
@@ -338,7 +347,7 @@ ndpi_enable_protocols (const struct xt_ndpi_mtinfo*info)
                         spin_unlock_bh (&ipq_lock);
                 }
         }
-        trace_NDPI_PROTOCOL_BITMASK(info->flags);
+        trace_NDPI_PROTOCOL_BITMASK(protocols_bitmask);
 }
 
 
@@ -358,7 +367,7 @@ ndpi_disable_protocols (const struct xt_ndpi_mtinfo*info)
                         spin_unlock_bh (&ipq_lock);
                 }
         }
-        trace_NDPI_PROTOCOL_BITMASK(info->flags);
+        trace_NDPI_PROTOCOL_BITMASK(protocols_bitmask);
 }
 
 
