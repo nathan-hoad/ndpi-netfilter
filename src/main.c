@@ -565,17 +565,6 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
         proto = ndpi_detection_process_packet(ndpi_struct, flow->ndpi_flow,
                                                 (uint8_t *) iph, ipsize, time,
                                                 src->ndpi_id, dst->ndpi_id);
-        {
-        	int i;
-        	char buf[500] = "";
-        	trace("%s: inside the insidious block\n", __FUNCTION__);
-        	for (i=0; i< flow->ndpi_flow->packet.payload_packet_len; i++) {
-        		int off = strlen(buf);
-        		snprintf(buf + off, 499 - off, "%.2X", flow->ndpi_flow->packet.payload[i]);
-        	}
-        	trace("payload: %s\n", buf);
-        }
-//        trace("PACKET[%p]: proto[%d], protocol_id_already_guessed[%d], guessed_protocol_id[%d], host[%s]\n",
 //        		flow, proto, flow->ndpi_flow->protocol_id_already_guessed,
 //        		flow->ndpi_flow->guessed_protocol_id,
 //        		flow->ndpi_flow->host_server_name);
