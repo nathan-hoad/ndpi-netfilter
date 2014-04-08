@@ -369,8 +369,8 @@ ndpi_enable_protocols (const struct xt_ndpi_mtinfo* info)
                         spin_lock_bh (&ipq_lock);
                         atomic_inc(&protocols_cnt[i-1]);
                         NDPI_ADD_PROTOCOL_TO_BITMASK(protocols_bitmask, i);
-                        ndpi_set_protocol_detection_bitmask2
-                                (ndpi_struct,&protocols_bitmask);
+//                        ndpi_set_protocol_detection_bitmask2
+//                                (ndpi_struct,&protocols_bitmask);
                         spin_unlock_bh (&ipq_lock);
                 }
         }
@@ -390,8 +390,8 @@ ndpi_disable_protocols (const struct xt_ndpi_mtinfo* info)
                         spin_lock_bh (&ipq_lock);
                         if (atomic_dec_and_test(&protocols_cnt[i-1])){
                                 NDPI_DEL_PROTOCOL_FROM_BITMASK(protocols_bitmask, i);
-                                ndpi_set_protocol_detection_bitmask2
-                                        (ndpi_struct, &protocols_bitmask);
+//                                ndpi_set_protocol_detection_bitmask2
+//                                        (ndpi_struct, &protocols_bitmask);
                         }
                         spin_unlock_bh (&ipq_lock);
                 }
@@ -812,6 +812,7 @@ ndpi_mt_reg __read_mostly = {
 static int __init ndpi_mt_init(void)
 {
         int ret, i;
+        NDPI_PROTOCOL_BITMASK all;
 	TRACE();
 
 	pr_err("xt_ndpi 0.1 (nDPI wrapper module).\n");
@@ -831,8 +832,10 @@ static int __init ndpi_mt_init(void)
         }
 
 	/* disable all protocols */
-	NDPI_BITMASK_RESET(protocols_bitmask);
-	ndpi_set_protocol_detection_bitmask2(ndpi_struct, &protocols_bitmask);
+        NDPI_BITMASK_RESET(protocols_bitmask);
+        /* enable allprotocols detection */
+        NDPI_BITMASK_SET_ALL(all);
+	ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
         
 	/* allocate memory for id and flow tracking */
 	size_id_struct = ndpi_detection_get_sizeof_ndpi_id_struct();
