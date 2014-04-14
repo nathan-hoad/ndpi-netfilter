@@ -1,0 +1,7 @@
+Dependencies:
+- C development environment
+- linux-headers for your kernel version ( I used 3.11.0-15-generic )
+- iptables-dev
+
+Compilation  and installation:
+ Just execute go.sh script
