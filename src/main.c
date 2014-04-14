@@ -1,20 +1,20 @@
-/* 
+/*
  * main.c
  * Copyright (C) 2010-2012 G. Elian Gidoni <geg@gnu.org>
  *               2012 Ed Wildgoose <lists@wildgooses.com>
- * 
+ *
  * This file is part of nDPI, an open source deep packet inspection
  * library based on the PACE technology by ipoque GmbH
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -107,7 +107,7 @@ static void debug_printf(u32 protocol, void *id_struct,
         va_start(args, format);
         switch (log_level)
         {
-            case NDPI_LOG_ERROR: 
+            case NDPI_LOG_ERROR:
                 vprintk(format, args);
                 break;
             case NDPI_LOG_TRACE:
@@ -569,9 +569,8 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
 //        		flow->ndpi_flow->guessed_protocol_id,
 //        		flow->ndpi_flow->host_server_name);
         flow->detected_protocol = proto;
-        if((flow->detected_protocol != NDPI_PROTOCOL_UNKNOWN)
-           || ((iph->protocol == IPPROTO_UDP) && (flow->packets > 8))
-           || ((iph->protocol == IPPROTO_TCP) && (flow->packets > 10))) {
+
+        if(flow->detected_protocol != NDPI_PROTOCOL_UNKNOWN)  {
                 flow->detection_completed = 1;
                 trace("%s[%p]: detection_completed -> detected_protocol: [%3d]\n"
                       "    protocol_id_already_guessed[%d]\n"
@@ -591,7 +590,7 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
 
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-static bool 
+static bool
 ndpi_mt (const struct sk_buff *skb,
             const struct net_device *in,
             const struct net_device *out,
@@ -650,7 +649,7 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	} else if (nf_ct_is_untracked(ct)){
 #endif
 		pr_err ("xt_ndpi: ignoring untracked sk_buff.\n");
-		return false;               
+		return false;
 	}
 	do_gettimeofday(&tv);
 
@@ -676,7 +675,7 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
 
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-static bool 
+static bool
 ndpi_mt_check(const char *tablename,
                  const void *ip,
                  const struct xt_match *match,
@@ -731,7 +730,7 @@ ndpi_mt_check(const struct xt_mtchk_param *par)
 
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-static void 
+static void
 ndpi_mt_destroy (const struct xt_match *match, void *matchinfo)
 {
 	const struct xt_ndpi_mtinfo *info = matchinfo;
@@ -741,7 +740,7 @@ ndpi_mt_destroy (const struct xt_match *match, void *matchinfo)
 }
 
 #else
-static void 
+static void
 ndpi_mt_destroy (const struct xt_mtdtor_param *par)
 {
 	const struct xt_ndpi_mtinfo *info = par->matchinfo;
@@ -765,12 +764,12 @@ static void ndpi_cleanup(void)
 
         ndpi_exit_detection_module(ndpi_struct, free_wrapper);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,2,0)         
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,2,0)
         nf_conntrack_unregister_notifier (&osdpi_notifier);
 #else
 	nf_conntrack_unregister_notifier (&init_net,&osdpi_notifier);
 #endif
-        
+
         /* free all objects before destroying caches */
         next = rb_first(&osdpi_flow_root);
         while (next){
@@ -780,7 +779,7 @@ static void ndpi_cleanup(void)
                 kmem_cache_free (osdpi_flow_cache, flow);
         }
         kmem_cache_destroy (osdpi_flow_cache);
-        
+
         next = rb_first(&osdpi_id_root);
         while (next){
                 id = rb_entry(next, struct osdpi_id_node, node);
@@ -826,7 +825,7 @@ static int __init ndpi_mt_init(void)
                 ret = -ENOMEM;
                 goto err_out;
 	}
-        
+
         for (i = 0; i < NDPI_LAST_IMPLEMENTED_PROTOCOL; i++){
                 atomic_set (&protocols_cnt[i], 0);
         }
@@ -836,11 +835,11 @@ static int __init ndpi_mt_init(void)
         /* enable allprotocols detection */
         NDPI_BITMASK_SET_ALL(all);
 	ndpi_set_protocol_detection_bitmask2(ndpi_struct, &all);
-        
+
 	/* allocate memory for id and flow tracking */
 	size_id_struct = ndpi_detection_get_sizeof_ndpi_id_struct();
 	size_flow_struct = ndpi_detection_get_sizeof_ndpi_flow_struct();
-        
+
         osdpi_flow_cache = kmem_cache_create("xt_ndpi_flows",
                                              sizeof(struct osdpi_flow_node) +
                                              size_flow_struct,
@@ -850,7 +849,7 @@ static int __init ndpi_mt_init(void)
                 ret = -ENOMEM;
                 goto err_ipq;
         }
-        
+
         osdpi_id_cache = kmem_cache_create("xt_ndpi_ids",
                                            sizeof(struct osdpi_id_node) +
                                            size_id_struct,
@@ -861,7 +860,7 @@ static int __init ndpi_mt_init(void)
                 goto err_flow;
         }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,2,0)        
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,2,0)
         ret = nf_conntrack_register_notifier(&osdpi_notifier);
 #else
 	ret = nf_conntrack_register_notifier(&init_net, &osdpi_notifier);
