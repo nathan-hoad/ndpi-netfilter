@@ -1,5 +1,7 @@
 Dependencies:
-- C development environment
+- make
+- gcc
+- libc6-dev
 - linux-headers for your kernel version ( I used 3.11.0-15-generic )
 - iptables-dev
 
