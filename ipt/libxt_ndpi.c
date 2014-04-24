@@ -1,20 +1,20 @@
-/* 
+/*
  * libxt_ndpi.c
  * Copyright (C) 2010-2012 G. Elian Gidoni <geg@gnu.org>
  *               2012 Ed Wildgoose <lists@wildgooses.com>
- * 
+ *
  * This file is part of nDPI, an open source deep packet inspection
  * library based on the PACE technology by ipoque GmbH
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
@@ -33,7 +33,7 @@
 static char *prot_long_str[] = { NDPI_PROTOCOL_LONG_STRING };
 static char *prot_short_str[] = { NDPI_PROTOCOL_SHORT_STRING };
 
-static void 
+static void
 ndpi_mt4_save(const void *entry, const struct xt_entry_match *match)
 {
 	const struct xt_ndpi_mtinfo *info = (const void *)match->data;
@@ -47,7 +47,7 @@ ndpi_mt4_save(const void *entry, const struct xt_entry_match *match)
 }
 
 
-static void 
+static void
 ndpi_mt4_print(const void *entry, const struct xt_entry_match *match,
                   int numeric)
 {
@@ -62,7 +62,7 @@ ndpi_mt4_print(const void *entry, const struct xt_entry_match *match,
 }
 
 
-static int 
+static int
 ndpi_mt4_parse(int c, char **argv, int invert, unsigned int *flags,
                   const void *entry, struct xt_entry_match **match)
 {
@@ -73,8 +73,6 @@ ndpi_mt4_parse(int c, char **argv, int invert, unsigned int *flags,
         for (i = 1; i <= NDPI_LAST_IMPLEMENTED_PROTOCOL; i++){
                 if (c == i){
                         NDPI_ADD_PROTOCOL_TO_BITMASK(info->flags, i);
-                        printf("Parameter detected as protocol %s.\n",
-                        		prot_long_str[i]);
                         *flags = 1;
                         return true;
                 }
@@ -110,7 +108,7 @@ ndpi_mt_help(void)
 }
 
 
-static void 
+static void
 ndpi_mt_init (struct xt_entry_match *match)
 {
 	struct xt_ndpi_mtinfo *info = (void *)match->data;
