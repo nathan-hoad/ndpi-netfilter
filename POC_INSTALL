@@ -7,3 +7,5 @@ Dependencies:
 
 Compilation  and installation:
  Just execute go.sh script
+
+Remember that nf_conntrack_netlink conflicts with the ndpi kernel module
