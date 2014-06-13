@@ -30,6 +30,8 @@
 
 #include "xt_ndpi.h"
 
+#include <ndpi_iptables_desc.h>
+
 static char *prot_long_str[] = { NDPI_PROTOCOL_LONG_STRING };
 static char *prot_short_str[] = { NDPI_PROTOCOL_SHORT_STRING };
 
