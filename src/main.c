@@ -53,6 +53,7 @@ struct osdpi_flow_node {
         u8 detection_completed;
 	/* result only, not used for flow identification */
 	u32 detected_protocol;
+        u32 packets_seen;
         /* last pointer assigned at run time */
 	struct ndpi_flow_struct *ndpi_flow;
 };
@@ -426,8 +427,10 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
                 if (flow == NULL)
                         return proto;
         }
-        if (flow->detection_completed) {
+        if (flow->detection_completed || flow->packets_seen >= 100) {
                 return flow->detected_protocol;
+        } else {
+                ++flow->packets_seen;
         }
 
         ipsrc = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.u3;
