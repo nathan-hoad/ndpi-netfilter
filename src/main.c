@@ -427,10 +427,28 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
                 if (flow == NULL)
                         return proto;
         }
-        if (flow->detection_completed || flow->packets_seen >= 100) {
+        if (flow->detection_completed) {
                 return flow->detected_protocol;
         } else {
                 ++flow->packets_seen;
+
+                if (flow->packets_seen >= 100 && flow->detected_protocol == NDPI_PROTOCOL_UNKNOWN) {
+                    // Never match ports (port-based filtering can be done elsewhere)
+                    u16 srcport = ~0;
+                    u16 dstport = ~0;
+
+                    spin_lock_bh (&ipq_lock);
+                    proto = ndpi_guess_undetected_protocol(ndpi_struct,
+                        iph->protocol,
+                        ntohl(iph->saddr), srcport,
+                        ntohl(iph->daddr), dstport);
+                    spin_unlock_bh (&ipq_lock);
+
+                    // Set on the connection for future use.
+                    flow->detected_protocol = proto;
+                    flow->detection_completed = 1;
+                    return proto;
+                }
         }
 
         ipsrc = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.u3;
