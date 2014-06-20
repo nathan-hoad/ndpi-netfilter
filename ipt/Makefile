@@ -14,7 +14,7 @@ all:
 	make libxt_ndpi.so
 	rm -r ${NDPI_SRC}
 lib%.so: lib%.o
-	$(CC) -shared -o $@ $^;
+	$(CC) ${CFLAGS} -shared -o $@ $^;
 lib%.o: lib%.c
 	$(CC) ${CFLAGS} -D_INIT=lib$*_init -c -o $@ $<;
 clean:
