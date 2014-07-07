@@ -523,6 +523,7 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
 {
     u32 proto;
     u64 time;
+    bool matched = false;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
     const struct xt_ndpi_mtinfo *info = matchinfo;
@@ -549,24 +550,14 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
 
     ct = nf_ct_get(skb_use, &ctinfo);
     if (ct == NULL) {
-
-        if (linearized_skb != NULL) {
-            kfree_skb(linearized_skb);
-        }
-
-        return false;
+        goto cleanup;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3,0,0)
     } else if (nf_ct_is_untracked(skb)) {
 #else
     } else if (nf_ct_is_untracked(ct)) {
 #endif
         pr_info("xt_ndpi: ignoring untracked sk_buff.\n");
-
-        if (linearized_skb != NULL) {
-            kfree_skb(linearized_skb);
-        }
-
-        return false;
+        goto cleanup;
     }
     do_gettimeofday(&tv);
 
@@ -576,15 +567,15 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
     /* process the packet */
     proto = ndpi_process_packet(ct, time, ip_hdr(skb_use), skb_use->len);
 
+    matched = (NDPI_COMPARE_PROTOCOL_TO_BITMASK(info->flags, proto) != 0);
+
+    cleanup:
+
     if (linearized_skb != NULL) {
         kfree_skb(linearized_skb);
     }
 
-    if (NDPI_COMPARE_PROTOCOL_TO_BITMASK(info->flags,proto) != 0) {
-        return true;
-    }
-
-    return false;
+    return matched;
 }
 
 
