@@ -561,6 +561,11 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
     } else if (nf_ct_is_untracked(ct)) {
 #endif
         pr_info("xt_ndpi: ignoring untracked sk_buff.\n");
+
+        if (linearized_skb != NULL) {
+            kfree_skb(linearized_skb);
+        }
+
         return false;
     }
     do_gettimeofday(&tv);
@@ -574,7 +579,6 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
     if (linearized_skb != NULL) {
         kfree_skb(linearized_skb);
     }
-
 
     if (NDPI_COMPARE_PROTOCOL_TO_BITMASK(info->flags,proto) != 0) {
         return true;
