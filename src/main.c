@@ -424,7 +424,7 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
     if (flow == NULL){
         flow = ndpi_alloc_flow(ct);
         if (flow == NULL)
-            return proto;
+            return NDPI_PROTOCOL_UNKNOWN;
     }
     if (flow->detection_completed) {
         return flow->detected_protocol;
@@ -458,7 +458,7 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
     if (src == NULL) {
         src = ndpi_alloc_id(ipsrc);
         if (src == NULL)
-            return proto;
+            return NDPI_PROTOCOL_UNKNOWN;
     }
 
     ipdst = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.dst.u3;
@@ -469,7 +469,7 @@ ndpi_process_packet(struct nf_conn * ct, const uint64_t time,
     if (dst == NULL) {
         dst = ndpi_alloc_id(ipdst);
         if (dst == NULL)
-            return proto;
+            return NDPI_PROTOCOL_UNKNOWN;
     }
 
     /* here the actual detection is performed */
