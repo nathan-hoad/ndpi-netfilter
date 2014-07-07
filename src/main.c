@@ -88,6 +88,12 @@ DEFINE_SPINLOCK(ipq_lock);
 static struct ndpi_detection_module_struct *ndpi_struct = NULL;
 static u32 detection_tick_resolution = 1000;
 
+static struct osdpi_id_node *ndpi_id_search(struct rb_root *root, union nf_inet_addr *ip);
+static struct osdpi_id_node * ndpi_alloc_id(union nf_inet_addr *ip);
+static struct osdpi_flow_node * ndpi_flow_search(struct rb_root *root, struct nf_conn *ct);
+static struct osdpi_flow_node *ndpi_alloc_flow(struct nf_conn *ct);
+
+
 /* debug functions */
 
 static void debug_printf(u32 protocol, void *id_struct,
