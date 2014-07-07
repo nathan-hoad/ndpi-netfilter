@@ -224,25 +224,25 @@ static struct osdpi_flow_node *
 ndpi_alloc_flow(struct nf_conn *ct)
 {
     struct osdpi_flow_node *flow;
+    flow = NULL;
 
     spin_lock_bh(&flow_lock);
     flow = ndpi_flow_search(&osdpi_flow_root, ct);
     if (flow != NULL) {
-        spin_unlock_bh(&flow_lock);
-        return flow;
+        goto unlock;
     }
     flow = kmem_cache_zalloc(osdpi_flow_cache, GFP_ATOMIC);
     if (flow == NULL) {
         pr_err("xt_ndpi: couldn't allocate new flow.\n");
-        spin_unlock_bh(&flow_lock);
-        return NULL;
+        goto unlock;
     }
     flow->ct = ct;
     flow->ndpi_flow = (struct ndpi_flow_struct *)
                       ((char *)&flow->ndpi_flow+sizeof(flow->ndpi_flow));
     ndpi_flow_insert(&osdpi_flow_root, flow);
-    spin_unlock_bh(&flow_lock);
 
+    unlock:
+    spin_unlock_bh(&flow_lock);
     return flow;
 }
 
@@ -266,6 +266,7 @@ static struct osdpi_id_node *
 ndpi_alloc_id(union nf_inet_addr *ip)
 {
     struct osdpi_id_node *id;
+    id = NULL;
 
     spin_lock_bh(&id_lock);
     id = ndpi_id_search(&osdpi_id_root, ip);
@@ -276,8 +277,7 @@ ndpi_alloc_id(union nf_inet_addr *ip)
 
         if (id == NULL) {
             pr_err("xt_ndpi: couldn't allocate new id.\n");
-            spin_unlock_bh(&id_lock);
-            return NULL;
+            goto unlock;
         }
         memcpy(&id->ip, ip, sizeof(union nf_inet_addr));
         id->ndpi_id = (struct ndpi_id_struct *)
@@ -285,8 +285,9 @@ ndpi_alloc_id(union nf_inet_addr *ip)
         kref_init(&id->refcnt);
         ndpi_id_insert(&osdpi_id_root, id);
     }
-    spin_unlock_bh(&id_lock);
 
+    unlock:
+    spin_unlock_bh(&id_lock);
     return id;
 }
 
