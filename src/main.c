@@ -111,6 +111,24 @@ static void free_wrapper(void *freeable)
     kfree(freeable);
 }
 
+
+static inline struct osdpi_flow_node *
+ndpi_retrieve_or_allocate_flow(struct rb_root *root, struct nf_conn *ct)
+{
+    struct osdpi_flow_node *flow;
+
+    spin_lock_bh(&flow_lock);
+    flow = ndpi_flow_search(&osdpi_flow_root, ct);
+    spin_unlock_bh(&flow_lock);
+
+    if (flow == NULL) {
+        // FIXME: ndpi_alloc_flow repeats ndpi_flow_search call - pointless operation.
+        flow = ndpi_alloc_flow(ct);
+    }
+    return flow;
+}
+
+
 static struct osdpi_flow_node *
 ndpi_flow_search(struct rb_root *root, struct nf_conn *ct)
 {
@@ -155,6 +173,23 @@ ndpi_flow_insert(struct rb_root *root, struct osdpi_flow_node *data)
     rb_insert_color(&data->node, root);
 
     return 1;
+}
+
+
+static inline struct osdpi_id_node *
+ndpi_retrieve_or_allocate_id(struct rb_root *root, union nf_inet_addr *ip)
+{
+    struct osdpi_id_node *node;
+
+    spin_lock_bh(&id_lock);
+    node = ndpi_id_search(root, ip);
+    spin_unlock_bh(&id_lock);
+
+    if (node == NULL) {
+        // FIXME: ndpi_alloc_id repeats ndpi_id_search call - pointless operation.
+        node = ndpi_alloc_id(ip);
+    }
+    return node;
 }
 
 
@@ -412,15 +447,12 @@ ndpi_process_packet(struct nf_conn *ct, const uint64_t time,
     struct osdpi_id_node *src, *dst;
     struct osdpi_flow_node *flow;
 
-    spin_lock_bh(&flow_lock);
-    flow = ndpi_flow_search(&osdpi_flow_root, ct);
-    spin_unlock_bh(&flow_lock);
+    flow = ndpi_retrieve_or_allocate_flow(&osdpi_flow_root, ct);
+
     if (flow == NULL) {
-        flow = ndpi_alloc_flow(ct);
-        if (flow == NULL) {
-            return NDPI_PROTOCOL_UNKNOWN;
-        }
+        return NDPI_PROTOCOL_UNKNOWN;
     }
+
     if (flow->detection_completed) {
         return flow->detected_protocol;
     } else {
@@ -446,27 +478,13 @@ ndpi_process_packet(struct nf_conn *ct, const uint64_t time,
     }
 
     ipsrc = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.u3;
-
-    spin_lock_bh(&id_lock);
-    src = ndpi_id_search(&osdpi_id_root, ipsrc);
-    spin_unlock_bh(&id_lock);
-    if (src == NULL) {
-        src = ndpi_alloc_id(ipsrc);
-        if (src == NULL) {
-            return NDPI_PROTOCOL_UNKNOWN;
-        }
-    }
-
     ipdst = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.dst.u3;
 
-    spin_lock_bh(&id_lock);
-    dst = ndpi_id_search(&osdpi_id_root, ipdst);
-    spin_unlock_bh(&id_lock);
-    if (dst == NULL) {
-        dst = ndpi_alloc_id(ipdst);
-        if (dst == NULL) {
-            return NDPI_PROTOCOL_UNKNOWN;
-        }
+    src = ndpi_retrieve_or_allocate_id(&osdpi_id_root, ipsrc);
+    dst = ndpi_retrieve_or_allocate_id(&osdpi_id_root, ipdst);
+
+    if (src == NULL || dst == NULL) {
+        return NDPI_PROTOCOL_UNKNOWN;
     }
 
     /* here the actual detection is performed */
@@ -482,7 +500,6 @@ ndpi_process_packet(struct nf_conn *ct, const uint64_t time,
 
     return proto;
 }
-
 
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
