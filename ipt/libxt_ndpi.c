@@ -73,13 +73,15 @@ ndpi_mt4_parse(int c, char **argv, int invert, unsigned int *flags,
     struct xt_ndpi_mtinfo *info = (void *)(*match)->data;
     int i;
 
-    if (c >= 0 && c <= NDPI_LAST_IMPLEMENTED_PROTOCOL) {
-        NDPI_ADD_PROTOCOL_TO_BITMASK(info->flags, i);
-        *flags = 1;
-        return true;
+    *flags = 0;
+    for (i = 1; i <= NDPI_LAST_IMPLEMENTED_PROTOCOL; i++){
+        if (c == i){
+            NDPI_ADD_PROTOCOL_TO_BITMASK(info->flags, i);
+            *flags = 1;
+            return true;
+        }
     }
 
-    *flags = 0;
     return false;
 }
 
