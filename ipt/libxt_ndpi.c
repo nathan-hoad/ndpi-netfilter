@@ -121,11 +121,7 @@ static struct xtables_match ndpi_mt4_reg = {
     .version = XTABLES_VERSION,
     .name = "ndpi",
     .revision = 0,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-    .family = AF_INET,
-#else
     .family = NFPROTO_IPV4,
-#endif
     .size = XT_ALIGN(sizeof(struct xt_ndpi_mtinfo)),
     .userspacesize = XT_ALIGN(sizeof(struct xt_ndpi_mtinfo)),
     .help = ndpi_mt_help,

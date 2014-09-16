@@ -384,36 +384,6 @@ ndpi_disable_protocols(const struct xt_ndpi_mtinfo *info)
 }
 
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-static int
-ndpi_conntrack_event(struct notifier_block *this, unsigned long ev,
-                     void *data)
-{
-    struct nf_conn *ct = (struct nf_conn *) data;
-    union nf_inet_addr *src, *dst;
-
-    if (ct == &nf_conntrack_untracked) {
-        return NOTIFY_DONE;
-    }
-
-    if (ev & IPCT_DESTROY) {
-        src = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.src.u3;
-        dst = &ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple.dst.u3;
-
-        ndpi_free_id(src);
-        ndpi_free_id(dst);
-        ndpi_free_flow(ct);
-    }
-
-    return NOTIFY_DONE;
-}
-
-static struct notifier_block
-        osdpi_notifier = {
-    .notifier_call = ndpi_conntrack_event,
-};
-
-#else
 static int
 ndpi_conntrack_event(unsigned int events, struct nf_ct_event *item)
 {
@@ -440,8 +410,6 @@ static struct nf_ct_event_notifier
         osdpi_notifier = {
     .fcn = ndpi_conntrack_event,
 };
-
-#endif
 
 
 static u32
@@ -508,18 +476,7 @@ ndpi_process_packet(struct nf_conn *ct, const uint64_t time,
 }
 
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-static bool
-ndpi_mt(const struct sk_buff *skb,
-        const struct net_device *in,
-        const struct net_device *out,
-        const struct xt_match *match,
-        const void *matchinfo,
-        int offset,
-        unsigned int protoff,
-        bool *hotdrop)
-
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)
 static bool
 ndpi_mt(const struct sk_buff *skb, const struct xt_match_param *par)
 #else
@@ -531,11 +488,7 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
     u64 time;
     bool matched = false;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-    const struct xt_ndpi_mtinfo *info = matchinfo;
-#else
     const struct xt_ndpi_mtinfo *info = par->matchinfo;
-#endif
 
     enum ip_conntrack_info ctinfo;
     struct nf_conn *ct;
@@ -585,28 +538,7 @@ ndpi_mt(const struct sk_buff *skb, struct xt_action_param *par)
 }
 
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-static bool
-ndpi_mt_check(const char *tablename,
-              const void *ip,
-              const struct xt_match *match,
-              void *matchinfo,
-              unsigned int hook_mask)
-
-{
-    const struct xt_ndpi_mtinfo *info = matchinfo;
-
-    if (NDPI_BITMASK_IS_ZERO(info->flags)) {
-        pr_info("None selected protocol.\n");
-        return false;
-    }
-
-    ndpi_enable_protocols(info);
-
-    return nf_ct_l3proto_try_module_get(match->family) == 0;
-}
-
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,35)
 static bool
 ndpi_mt_check(const struct xt_mtchk_param *par)
 {
@@ -639,17 +571,6 @@ ndpi_mt_check(const struct xt_mtchk_param *par)
 #endif
 
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-static void
-ndpi_mt_destroy(const struct xt_match *match, void *matchinfo)
-{
-    const struct xt_ndpi_mtinfo *info = matchinfo;
-
-    ndpi_disable_protocols(info);
-    nf_ct_l3proto_module_put(match->family);
-}
-
-#else
 static void
 ndpi_mt_destroy(const struct xt_mtdtor_param *par)
 {
@@ -658,9 +579,6 @@ ndpi_mt_destroy(const struct xt_mtdtor_param *par)
     ndpi_disable_protocols(info);
     nf_ct_l3proto_module_put(par->family);
 }
-
-#endif
-
 
 
 static void ndpi_cleanup(void)
@@ -702,11 +620,7 @@ static struct xt_match
         ndpi_mt_reg __read_mostly = {
     .name = "ndpi",
     .revision = 0,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-    .family = AF_INET,
-#else
     .family = NFPROTO_IPV4,
-#endif
     .match = ndpi_mt,
     .checkentry = ndpi_mt_check,
     .destroy = ndpi_mt_destroy,
@@ -800,7 +714,6 @@ static void __exit ndpi_mt_exit(void)
 
     ndpi_cleanup();
 }
-
 
 module_init(ndpi_mt_init);
 module_exit(ndpi_mt_exit);
